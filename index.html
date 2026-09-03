@@ -1,4 +1,6 @@
 <title>Netball Shot Sheet</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0C1310">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -49,7 +51,14 @@
 }
 
 *{box-sizing:border-box}
-body{background:var(--ground); color:var(--ink);
+/* This page also runs standalone, so it carries its own reset rather than
+   relying on a host page to supply one. [hidden] must beat the id and class
+   rules below, hence !important. */
+html{height:100%}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0; min-height:100%; overscroll-behavior-y:none;
+  background:var(--ground); color:var(--ink);
   font-family:Archivo,"Helvetica Neue",Arial,sans-serif; font-size:15px; line-height:1.45;
   -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:5px}
@@ -274,6 +283,7 @@ tfoot td{font-weight:700; border-top:2px solid var(--line-2); border-bottom:none
   border-top:1px solid var(--line); background:var(--surface)}
 
 .empty{text-align:center; padding:52px 24px; color:var(--ink-3)}
+#shootEmpty{margin-block:auto}          /* centre it when no session is running */
 .empty b{display:block; color:var(--ink); font-size:17px; margin-bottom:6px; font-weight:700}
 .empty p{margin:0 auto 20px; font-size:13.5px; max-width:30ch; line-height:1.5}
 .note{font-size:12.5px; color:var(--ink-2); margin:12px 0 0; line-height:1.5}

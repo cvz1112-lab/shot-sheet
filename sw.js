@@ -1,6 +1,6 @@
 /* Netball Shot Sheet - offline cache.
    Bump CACHE when you publish a new version of index.html. */
-var CACHE = "shot-sheet-v1";
+var CACHE = "shot-sheet-v2";
 var CORE = [
   "./",
   "./index.html",
