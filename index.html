@@ -228,6 +228,17 @@ tfoot td{font-weight:700; border-top:2px solid var(--line-2); border-bottom:none
   text-transform:uppercase; font-weight:600}
 .chev{flex:none; color:var(--ink-3); font-size:20px; line-height:1}
 
+/* ---- feedback settings ---- */
+.prefrow{display:flex; align-items:center; gap:12px; padding:9px 0;
+  border-bottom:1px solid var(--line)}
+.prefrow:last-of-type{border-bottom:none}
+.prefrow span{flex:1; font-size:14px; font-weight:600}
+.tog{flex:none; min-width:62px; text-align:center; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:999px; padding:8px 14px;
+  font-size:12.5px; font-weight:700; color:var(--ink-2)}
+.tog[aria-pressed="true"]{background:var(--made); border-color:var(--made);
+  color:var(--made-ink)}
+
 /* ---- nav ---- */
 .nav{flex:none; display:flex; background:var(--surface); border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
@@ -397,19 +408,40 @@ var ZONES={
   2:{name:"2 points",band:"Mid",sub:"3.5 m arc to the goal circle"},
   3:{name:"3 points",band:"Long",sub:"goal third, outside the circle"}
 };
-var K_ACTIVE="nss.active", K_HIST="nss.history";
+var K_ACTIVE="nss.active", K_HIST="nss.history", K_PREFS="nss.prefs";
 var S=null, hist=[], pending=null, lockSpot=false, tick=null;
+var prefs={vib:true, snd:false};
 
 function store(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 function load(k,d){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):d; }catch(e){ return d; } }
-/* Haptics. Android exposes navigator.vibrate; iOS does not support it at all,
-   and an embedded viewer can block it, so every press also has a visual answer. */
+/* Haptics. Android exposes navigator.vibrate; iOS does not support it at all.
+   Many phones (Samsung especially) will not render a pulse shorter than about
+   20-30 ms, so these are deliberately long enough to feel through a grip. */
 var HAPTIC = !!(navigator.vibrate || navigator.mozVibrate);
+var H={ made:[45], miss:[25,70,25], tap:[18], ui:[14] };
 function buzz(p){
-  if(!HAPTIC) return;
-  try{ (navigator.vibrate||navigator.mozVibrate).call(navigator,p); }catch(e){}
+  if(!HAPTIC || !prefs.vib) return false;
+  try{ return (navigator.vibrate||navigator.mozVibrate).call(navigator,p)!==false; }
+  catch(e){ return false; }
 }
-var H={ made:[30], miss:[14,70,14], tap:[10], ui:[7] };
+/* Optional click, for phones whose touch feedback is switched off system-wide */
+var actx=null;
+function blip(made){
+  if(!prefs.snd) return;
+  try{
+    if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    var o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+    var dur = made?0.09:0.15;
+    o.type="triangle";
+    o.frequency.setValueAtTime(made?880:360, t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.25, t+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t+dur+0.02);
+  }catch(e){}
+}
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 function pct(m,a){ return a? Math.round(m/a*100) : 0; }
@@ -532,7 +564,7 @@ function logShot(made){
   S.shots.push({x:+pending.x.toFixed(3), y:+pending.y.toFixed(3), z:z, k:k,
                 made:made, t:Date.now()});
   if(!lockSpot) pending=null;
-  buzz(made?H.made:H.miss);
+  buzz(made?H.made:H.miss); blip(made);
   flashBtn(made?"madeBtn":"missBtn");
   toast(made, z, k, S.shots.length);
   store(K_ACTIVE,S); renderShoot();
@@ -788,6 +820,14 @@ function renderHist(){
   if(S) out.push('<div class="rowbtns"><button class="btn" id="newBtn">Back to shooting</button>'+
     '<button class="btn primary" id="endBtn2">End session</button></div>');
   else out.push('<button class="btn primary" id="newBtn">New session</button>');
+  out.push('<div class="card"><h3>Button feedback</h3>'+
+    '<div class="prefrow"><span>Vibrate on Made and Miss</span>'+
+      '<button class="tog" id="pVib" aria-pressed="'+prefs.vib+'">'+(prefs.vib?"On":"Off")+'</button></div>'+
+    '<div class="prefrow"><span>Click sound</span>'+
+      '<button class="tog" id="pSnd" aria-pressed="'+prefs.snd+'">'+(prefs.snd?"On":"Off")+'</button></div>'+
+    '<button class="btn" id="pTest" style="margin-top:12px">Test it</button>'+
+    '<p class="note" id="pMsg">Tap Test it to check what this phone does.</p></div>');
+
   if(!hist.length){
     out.push(emptyMsg("No saved sessions",
       "When you end a session it is saved here with its full report, so you can compare week to week."));
@@ -806,6 +846,34 @@ function renderHist(){
   el.innerHTML=out.join("");
   document.getElementById("newBtn").onclick=function(){ S?go("Shoot"):openNew(); };
   var e2=document.getElementById("endBtn2"); if(e2) e2.onclick=confirmEnd;
+
+  function setPref(key,btn){
+    prefs[key]=!prefs[key];
+    btn.setAttribute("aria-pressed",String(prefs[key]));
+    btn.textContent=prefs[key]?"On":"Off";
+    store(K_PREFS,prefs);
+    if(key==="vib"&&prefs.vib) buzz(H.made);
+    if(key==="snd"&&prefs.snd) blip(true);
+  }
+  document.getElementById("pVib").onclick=function(){ setPref("vib",this); };
+  document.getElementById("pSnd").onclick=function(){ setPref("snd",this); };
+  document.getElementById("pTest").onclick=function(){
+    var msg=document.getElementById("pMsg");
+    blip(true);
+    if(!HAPTIC){
+      msg.textContent="This phone's browser has no vibration at all (iPhones never do). "+
+        "Turn the click sound on instead.";
+    } else if(!prefs.vib){
+      msg.textContent="Vibration is switched off above.";
+    } else if(buzz([60,80,60])){
+      msg.textContent="Sent a long buzz. If you felt nothing, your phone's touch "+
+        "feedback is off — Settings, Sounds and vibration, System sound/vibration "+
+        "control, and switch on Touch interactions.";
+    } else {
+      msg.textContent="Your phone refused the vibration. Check that it is not in a "+
+        "Do Not Disturb or power-saving mode.";
+    }
+  };
   var rows=el.querySelectorAll(".srow");
   for(var k=0;k<rows.length;k++) rows[k].onclick=function(){ openPast(hist[+this.dataset.i]); };
 }
@@ -1534,6 +1602,9 @@ document.getElementById("court").addEventListener("click",function(e){
   pending={x:pt.x,y:pt.y,z:z,k:sectorAt(pt.x,pt.y)}; buzz(H.tap); renderShoot();
 });
 
+prefs=load(K_PREFS,prefs);
+if(typeof prefs.vib!=="boolean") prefs.vib=true;
+if(typeof prefs.snd!=="boolean") prefs.snd=false;
 hist=load(K_HIST,[]);
 S=load(K_ACTIVE,null);
 if(S && !S.shots) S=null;
