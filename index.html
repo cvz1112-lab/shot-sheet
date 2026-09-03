@@ -1,0 +1,1540 @@
+<title>Netball Shot Sheet</title>
+<meta name="theme-color" content="#0C1310">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Shot Sheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --ground:#F1F4F1; --surface:#FFFFFF; --surface-2:#E9EEEA; --surface-3:#DDE6E0;
+  --ink:#101713; --ink-2:#55655B; --ink-3:#849A8B;
+  --line:#D5DED8; --line-2:#BFCDC4;
+  --court:#E7EEE9; --court-line:#2C6A51; --court-line-soft:#9CB8A8;
+  --made:#1D6B4C; --miss:#94A69B; --made-ink:#FFFFFF; --hit-ink:#FFFFFF;
+  --accent:#DD5426; --accent-ink:#FFFFFF;
+  --z1:#D2872F; --z2:#DD5426; --z3:#8E2F1A;
+  --z1-tint:#F3E7DA; --z2-tint:#EFDED6; --z3-tint:#E8D6D1;
+  --shadow:0 1px 2px rgba(16,23,19,.06), 0 8px 24px -12px rgba(16,23,19,.2);
+  --focus:#DD5426;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1310; --surface:#15201A; --surface-2:#1D2A23; --surface-3:#25342B;
+    --ink:#E8F0EA; --ink-2:#9FB2A6; --ink-3:#6E8377;
+    --line:#26332C; --line-2:#35473B;
+    --court:#13211A; --court-line:#4A8E70; --court-line-soft:#2E5644;
+    --made:#45C08D; --miss:#6B7F73; --made-ink:#07160F; --hit-ink:#0C1310;
+    --accent:#FF7A4D; --accent-ink:#1A0C06;
+    --z1:#E8A85F; --z2:#FF7A4D; --z3:#C2543A;
+    --z1-tint:#241D14; --z2-tint:#2A1A13; --z3-tint:#251712;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.75);
+    --focus:#FF7A4D;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1310; --surface:#15201A; --surface-2:#1D2A23; --surface-3:#25342B;
+  --ink:#E8F0EA; --ink-2:#9FB2A6; --ink-3:#6E8377;
+  --line:#26332C; --line-2:#35473B;
+  --court:#13211A; --court-line:#4A8E70; --court-line-soft:#2E5644;
+  --made:#45C08D; --miss:#6B7F73; --made-ink:#07160F; --hit-ink:#0C1310;
+  --accent:#FF7A4D; --accent-ink:#1A0C06;
+  --z1:#E8A85F; --z2:#FF7A4D; --z3:#C2543A;
+  --z1-tint:#241D14; --z2-tint:#2A1A13; --z3-tint:#251712;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.75);
+  --focus:#FF7A4D;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink);
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif; font-size:15px; line-height:1.45;
+  -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:5px}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input,textarea,select{font:inherit; color:inherit}
+h1,h2,h3{text-wrap:balance}
+
+.app{max-width:520px; margin:0 auto; height:100dvh; display:flex; flex-direction:column;
+  overflow:hidden}
+
+/* ---- top bar ---- */
+.topbar{flex:none; background:var(--surface); border-bottom:1px solid var(--line);
+  padding:9px 15px; display:flex; align-items:center; gap:12px}
+.tbback{flex:none; width:38px; height:38px; margin:-4px 0 -4px -6px; border-radius:11px;
+  font-size:26px; font-weight:600; line-height:1; color:var(--ink-2);
+  display:flex; align-items:center; justify-content:center}
+.tbback:active{background:var(--surface-2)}
+.tb-id{min-width:0; flex:1}
+.tb-name{font-weight:700; font-size:15px; letter-spacing:-.01em; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis}
+.tb-sub{font-size:10.5px; color:var(--ink-3); letter-spacing:.08em; text-transform:uppercase;
+  font-weight:600; margin-top:1px}
+.tb-score{text-align:right; line-height:1}
+.tb-score b{font-size:25px; font-weight:800; letter-spacing:-.035em; display:block;
+  font-variant-numeric:tabular-nums}
+.tb-score span{font-size:9.5px; color:var(--ink-3); letter-spacing:.12em; text-transform:uppercase;
+  font-weight:600}
+
+/* ---- screens ---- */
+.screen{display:none; flex:1; flex-direction:column; min-height:0; overflow-y:auto;
+  -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+.screen.on{display:flex}
+.pad{padding:15px}
+.stack{display:flex; flex-direction:column; gap:14px}
+
+/* ---- zone counters ---- */
+.tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:12px 15px 2px;
+  flex:none}
+.tile{background:var(--surface); border:1px solid var(--line); border-radius:11px;
+  padding:7px 9px 8px; text-align:left; position:relative; overflow:hidden}
+.tile::before{content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--zc)}
+.tile.live{box-shadow:inset 0 0 0 1.5px var(--zc)}
+.tile-h{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--zc);
+  font-weight:700; display:flex; justify-content:space-between; align-items:baseline; gap:4px}
+.tile-h i{font-style:normal; color:var(--ink-3); letter-spacing:.02em;
+  font-variant-numeric:tabular-nums}
+.tile-v{font-size:19px; font-weight:800; letter-spacing:-.03em; line-height:1.25;
+  font-variant-numeric:tabular-nums}
+.tile-v i{font-style:normal; font-size:12px; font-weight:600; color:var(--ink-3)}
+
+/* ---- court ---- */
+#shootLive{flex:1; display:flex; flex-direction:column; min-height:0}
+.courtwrap{padding:8px 15px; position:relative; flex:1; min-height:0;
+  display:flex; align-items:center}
+.court{display:block; width:100%; height:auto; max-height:100%; background:var(--court);
+  border:1px solid var(--line-2); border-radius:12px; touch-action:manipulation}
+.hint{position:absolute; left:50%; bottom:14%; transform:translateX(-50%);
+  background:var(--surface); border:1px solid var(--line); border-radius:999px;
+  padding:8px 16px; font-size:12.5px; font-weight:600; color:var(--ink-2);
+  pointer-events:none; box-shadow:var(--shadow); white-space:nowrap}
+
+/* ---- action bar ---- */
+.actions{flex:none; background:var(--ground); padding:11px 15px 13px; margin-top:auto;
+  position:relative}
+.actrow{display:flex; align-items:center; gap:8px; margin-bottom:9px}
+.status{flex:1; text-align:center; font-size:12px; font-weight:600; color:var(--ink-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.status b{color:var(--zc,var(--ink))}
+.mini{background:var(--surface); border:1px solid var(--line); border-radius:999px;
+  padding:7px 13px; font-size:12px; font-weight:700; flex:none}
+.mini[aria-pressed="true"]{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.mini:disabled{opacity:.35}
+.bigrow{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.big{height:78px; border-radius:15px; font-size:20px; font-weight:800; letter-spacing:.05em;
+  text-transform:uppercase; border:2px solid; position:relative; overflow:hidden;
+  transition:transform .07s ease, filter .07s ease}
+.big:active{transform:scale(.955); filter:brightness(1.12)}
+.big.made{background:var(--made); border-color:var(--made); color:var(--made-ink)}
+.big.miss{background:transparent; border-color:var(--line-2); color:var(--ink-2)}
+.big:disabled{opacity:.3}
+.big.flash{animation:flash .34s ease-out}
+@keyframes flash{
+  0%{transform:scale(1)} 22%{transform:scale(.94)} 100%{transform:scale(1)}
+}
+.big.miss.flash{animation:flashMiss .34s ease-out}
+@keyframes flashMiss{
+  0%{transform:scale(1); background:var(--surface-3)}
+  22%{transform:scale(.94); background:var(--surface-3)}
+  100%{transform:scale(1); background:transparent}
+}
+/* ripple confirming the tap landed */
+.ripple{position:absolute; border-radius:50%; pointer-events:none;
+  background:currentColor; opacity:.35; animation:ripple .45s ease-out forwards}
+@keyframes ripple{to{transform:scale(2.6); opacity:0}}
+
+/* ---- toast ---- */
+.toast{position:absolute; left:50%; top:-6px; transform:translate(-50%,-100%);
+  background:var(--ink); color:var(--ground); border-radius:999px; padding:9px 18px;
+  font-size:13.5px; font-weight:700; white-space:nowrap; z-index:15;
+  box-shadow:var(--shadow); opacity:0; animation:toast 1.15s ease-out forwards}
+.toast .tz{opacity:.65; font-weight:600}
+@keyframes toast{
+  0%{opacity:0; transform:translate(-50%,-70%)}
+  14%{opacity:1; transform:translate(-50%,-100%)}
+  76%{opacity:1; transform:translate(-50%,-100%)}
+  100%{opacity:0; transform:translate(-50%,-115%)}
+}
+
+/* ---- cards ---- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:15px}
+.card > h3{margin:0 0 11px; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:700}
+
+/* ---- block sheet ---- */
+.sheetgrp + .sheetgrp{margin-top:20px}
+.gh{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px}
+.gh b{font-size:14px; font-weight:700; color:var(--zc); letter-spacing:.01em}
+.gh span{font-size:11.5px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.blocks{display:grid; grid-template-columns:repeat(10,1fr); gap:4px}
+.blk{aspect-ratio:1; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; font-weight:500;
+  border:1.5px solid var(--line-2); color:var(--ink-3); font-variant-numeric:tabular-nums}
+.blk.hit{background:var(--zc); border-color:var(--zc); color:var(--hit-ink); font-weight:600}
+.blk.todo{border-style:dashed; border-color:var(--line); color:var(--line-2)}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-2);
+  margin-top:12px; align-items:center}
+.legend i{display:inline-block; width:13px; height:13px; border-radius:3px; margin-right:5px;
+  vertical-align:-2px; border:1.5px solid var(--line-2)}
+.legend i.f{background:var(--ink-3); border-color:var(--ink-3)}
+.legend i.d{border-style:dashed}
+
+/* ---- stats ---- */
+table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+th,td{text-align:right; padding:8px 3px; font-size:13px; border-bottom:1px solid var(--line)}
+th{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);
+  font-weight:700}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tfoot td{font-weight:700; border-top:2px solid var(--line-2); border-bottom:none}
+.zdot{display:inline-block; width:8px; height:8px; border-radius:2px; background:var(--zc);
+  margin-right:8px; vertical-align:1px}
+.kpis{display:grid; grid-template-columns:repeat(2,1fr); gap:9px}
+.kpi{background:var(--surface-2); border-radius:12px; padding:11px 12px}
+.kpi b{display:block; font-size:25px; font-weight:800; letter-spacing:-.035em; line-height:1.1;
+  font-variant-numeric:tabular-nums}
+.kpi span{font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3);
+  font-weight:700}
+.kpi em{font-style:normal; font-size:12px; color:var(--ink-2); font-weight:500}
+.strip{display:flex; gap:2px; align-items:flex-end; height:60px}
+.bar{flex:1; min-width:3px; background:var(--surface-3); border-radius:2px 2px 0 0;
+  position:relative; height:100%}
+.bar i{position:absolute; left:0; right:0; bottom:0; background:var(--accent);
+  border-radius:2px 2px 0 0}
+.axis{display:flex; justify-content:space-between; font-size:10px; color:var(--ink-3);
+  margin-top:6px}
+
+/* ---- sessions ---- */
+.slist{display:flex; flex-direction:column; gap:9px}
+.srow{width:100%; text-align:left; background:var(--surface); border:1px solid var(--line);
+  border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:12px}
+.srow-m{flex:1; min-width:0}
+.srow-m b{display:block; font-size:14px; font-weight:700}
+.srow-m span{font-size:11px; color:var(--ink-3); letter-spacing:.03em}
+.srow-p{text-align:right; line-height:1.2}
+.srow-p b{font-size:19px; font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.srow-p span{display:block; font-size:9.5px; color:var(--ink-3); letter-spacing:.08em;
+  text-transform:uppercase; font-weight:600}
+.chev{flex:none; color:var(--ink-3); font-size:20px; line-height:1}
+
+/* ---- nav ---- */
+.nav{flex:none; display:flex; background:var(--surface); border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1; padding:8px 2px 9px; display:flex; flex-direction:column; align-items:center;
+  gap:3px; font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); border-top:2px solid transparent; margin-top:-1px;
+  transition:color .12s}
+.nav button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round}
+.nav button.on{color:var(--ink); border-top-color:var(--accent)}
+.nav button:active{background:var(--surface-2)}
+
+/* ---- controls ---- */
+.btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  min-height:52px; border-radius:12px; font-size:15px; font-weight:700;
+  border:1px solid var(--line-2); background:var(--surface); padding:0 16px;
+  transition:transform .07s ease}
+.btn:active{transform:scale(.985); filter:brightness(1.08)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.btn.danger{color:var(--z3); border-color:var(--z3)}
+.btn:disabled{opacity:.4}
+.rowbtns{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.field{display:block; margin-bottom:13px}
+.field > span{display:block; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:700; margin-bottom:6px}
+.field input,.field textarea{width:100%; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:10px; padding:13px; font-size:16px}
+.field textarea{min-height:80px; resize:vertical; font-size:15px; line-height:1.5}
+.seg{display:grid; grid-auto-flow:column; gap:5px; background:var(--surface-2);
+  border-radius:12px; padding:4px}
+.seg button{padding:11px 6px; border-radius:9px; font-size:13.5px; font-weight:700;
+  color:var(--ink-2); transition:background .12s}
+.seg button[aria-pressed="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+
+/* ---- sheet / modal ---- */
+.veil{position:fixed; inset:0; z-index:60; background:rgba(8,14,11,.6);
+  display:flex; align-items:flex-end; justify-content:center}
+.veil[hidden]{display:none}
+.sheet{background:var(--ground); width:100%; max-width:520px; height:94dvh;
+  border-radius:20px 20px 0 0; display:flex; flex-direction:column; overflow:hidden}
+.sheet-top{flex:none; display:flex; align-items:center; gap:10px; padding:12px 14px;
+  border-bottom:1px solid var(--line); background:var(--surface)}
+.sheet-top .st-id{flex:1; min-width:0}
+.sheet-top h2{margin:0; font-size:16px; font-weight:800; letter-spacing:-.02em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sheet-top p{margin:1px 0 0; font-size:11px; color:var(--ink-3); letter-spacing:.03em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.navbtn{flex:none; display:flex; align-items:center; gap:5px; background:var(--surface-2);
+  border-radius:999px; padding:8px 14px; font-size:13px; font-weight:700}
+.navbtn:active{background:var(--surface-3)}
+.sheet-body{flex:1; min-height:0; overflow-y:auto; padding:16px 15px calc(20px + env(safe-area-inset-bottom))}
+.sheet-foot{flex:none; padding:11px 15px calc(13px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line); background:var(--surface)}
+
+.empty{text-align:center; padding:52px 24px; color:var(--ink-3)}
+.empty b{display:block; color:var(--ink); font-size:17px; margin-bottom:6px; font-weight:700}
+.empty p{margin:0 auto 20px; font-size:13.5px; max-width:30ch; line-height:1.5}
+.note{font-size:12.5px; color:var(--ink-2); margin:12px 0 0; line-height:1.5}
+.note.c{text-align:center}
+textarea.dump{width:100%; min-height:160px; font-family:"IBM Plex Mono",monospace; font-size:11px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:11px}
+.pageimg{width:100%; display:block; border:1px solid var(--line-2); border-radius:10px;
+  margin-bottom:6px; background:#fff}
+.pagelbl{font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 6px}
+.pagewrap{margin-bottom:20px}
+.busy{text-align:center; padding:40px 20px; color:var(--ink-2); font-size:14px}
+.spin{width:26px; height:26px; margin:0 auto 14px; border:3px solid var(--line-2);
+  border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- report pages (real text, crisp at any zoom) ---- */
+.rp-tabs{display:grid; grid-auto-flow:column; gap:5px; background:var(--surface-2);
+  border-radius:12px; padding:4px; margin-bottom:15px}
+.rp-tabs button{padding:10px 4px; border-radius:9px; font-size:12.5px; font-weight:700;
+  color:var(--ink-2)}
+.rp-tabs button[aria-pressed="true"]{background:var(--surface); color:var(--ink);
+  box-shadow:var(--shadow)}
+.rp-page{background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  padding:18px 16px; margin-bottom:14px}
+.rp-page h4{margin:0 0 3px; font-size:19px; font-weight:800; letter-spacing:-.02em}
+.rp-kicker{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 2px}
+.rp-meta{font-size:12px; color:var(--ink-2); margin:0 0 15px}
+.rp-sec{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); margin:20px 0 10px}
+.rp-sec:first-child{margin-top:0}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <button class="tbback" id="tbBack" aria-label="Back to the previous screen" hidden>‹</button>
+    <div class="tb-id">
+      <div class="tb-name" id="tbName">No session</div>
+      <div class="tb-sub" id="tbSub">Tap New session to start</div>
+    </div>
+    <div class="tb-score"><b id="tbScore">0</b><span id="tbScoreLbl">Points</span></div>
+  </header>
+
+  <section class="screen on" id="scShoot">
+    <div id="shootLive" hidden>
+      <div class="tiles" id="tiles"></div>
+      <div class="courtwrap">
+        <svg class="court" id="court" viewBox="0 -0.6 15.25 11.3" role="img" aria-label="Goal third. Tap where the shot was taken from."></svg>
+        <div class="hint" id="hint">Tap where she shot from</div>
+      </div>
+    </div>
+
+    <div class="empty" id="shootEmpty">
+      <b>No session running</b>
+      <p>Start a session, then tap the court where each shot is taken and mark it made or missed.</p>
+      <button class="btn primary" id="startBtn" style="max-width:260px;margin:0 auto">New session</button>
+    </div>
+
+    <div class="actions" id="actions" hidden>
+      <div class="actrow">
+        <button class="mini" id="undoBtn" disabled>Undo</button>
+        <div class="status" id="status">Tap the court</div>
+        <button class="mini" id="lockBtn" aria-pressed="false">Lock spot</button>
+      </div>
+      <div class="bigrow">
+        <button class="big made" id="madeBtn" disabled>Made</button>
+        <button class="big miss" id="missBtn" disabled>Miss</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scSheet"><div class="pad" id="sheetBody"></div></section>
+  <section class="screen" id="scStats"><div class="pad stack" id="statsBody"></div></section>
+  <section class="screen" id="scHist"><div class="pad stack" id="histBody"></div></section>
+
+  <nav class="nav" id="nav">
+    <button data-tab="Shoot" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Shoot</button>
+    <button data-tab="Sheet"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Sheet</button>
+    <button data-tab="Stats"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
+    <button data-tab="Hist"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Sessions</button>
+  </nav>
+</div>
+
+<div class="veil" id="veil" hidden>
+  <div class="sheet">
+    <div class="sheet-top">
+      <button class="navbtn" id="shBack">Close</button>
+      <div class="st-id"><h2 id="shTitle"></h2><p id="shSub"></p></div>
+      <button class="navbtn" id="shNext" hidden></button>
+    </div>
+    <div class="sheet-body" id="shBody"></div>
+    <div class="sheet-foot" id="shFoot" hidden></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================ court model ===
+   Official netball court: 30.5 x 15.25 m in three equal thirds, so the goal
+   third is 10.167 m deep. The goal circle is a 4.9 m semicircle centred on the
+   mid-point of the goal line. FAST5 adds a 3.5 m inner arc:
+   inside 3.5 m = 1 point, 3.5-4.9 m = 2 points, rest of the goal third = 3. */
+var CW=15.25, PX=7.625, R1=3.5, R2=4.9, TD=10.167;
+var VBY=-0.6, VBH=11.3, VB="0 "+VBY+" "+CW+" "+VBH;
+var DOT=0.28;                       /* shot marker radius, in metres */
+var ZONES={
+  1:{name:"1 point",band:"Close",sub:"inside the 3.5 m arc"},
+  2:{name:"2 points",band:"Mid",sub:"3.5 m arc to the goal circle"},
+  3:{name:"3 points",band:"Long",sub:"goal third, outside the circle"}
+};
+var K_ACTIVE="nss.active", K_HIST="nss.history";
+var S=null, hist=[], pending=null, lockSpot=false, tick=null;
+
+function store(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function load(k,d){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):d; }catch(e){ return d; } }
+/* Haptics. Android exposes navigator.vibrate; iOS does not support it at all,
+   and an embedded viewer can block it, so every press also has a visual answer. */
+var HAPTIC = !!(navigator.vibrate || navigator.mozVibrate);
+function buzz(p){
+  if(!HAPTIC) return;
+  try{ (navigator.vibrate||navigator.mozVibrate).call(navigator,p); }catch(e){}
+}
+var H={ made:[30], miss:[14,70,14], tap:[10], ui:[7] };
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function pct(m,a){ return a? Math.round(m/a*100) : 0; }
+function zoneLabel(z){ return S && S.mode==="fast5" ? ZONES[z].name : ZONES[z].band; }
+function zoneShort(z){ return S && S.mode==="fast5" ? z+" pt" : ZONES[z].band; }
+function zoneName(sess,z){ return sess.mode==="fast5" ? ZONES[z].name : ZONES[z].band; }
+function zoneAt(x,y){
+  if(y<0 || y>TD || x<0 || x>CW) return 0;      /* must be inside the goal third */
+  var d=Math.sqrt((x-PX)*(x-PX)+y*y);
+  if(d<=R1) return 1;
+  if(d<=R2) return 2;
+  return 3;
+}
+
+/* ---------------------------------------------------------- 15 sectors ----
+   The coach's sheet: four lines fan out from the post making 5 wedges, and the
+   two scoring arcs cut those into 3 bands. Numbering snakes — 1-5 down the
+   inner band, 6-10 back up the middle band, 11-15 down the outer band — so the
+   band also gives the points: 1-5 = 1 pt, 6-10 = 2 pt, 11-15 = 3 pt. */
+var WEDGES=5;
+function wedgeAt(x,y){
+  var w=Math.floor((Math.PI-Math.atan2(y,x-PX))*WEDGES/Math.PI)+1;
+  return w<1?1:(w>WEDGES?WEDGES:w);
+}
+function sectorAt(x,y){
+  var z=zoneAt(x,y); if(!z) return 0;
+  var w=wedgeAt(x,y);
+  return z===1 ? w : (z===2 ? 11-w : 10+w);
+}
+function sectorZone(k){ return k<=5?1:(k<=10?2:3); }
+function shotSector(sh){ return sh.k || sectorAt(sh.x,sh.y); }   /* older sessions */
+function rayExit(th){
+  var dx=Math.cos(th), dy=Math.sin(th), t=Infinity;
+  if(dx>1e-9) t=Math.min(t,(CW-PX)/dx);
+  if(dx<-1e-9) t=Math.min(t,-PX/dx);
+  if(dy>1e-9) t=Math.min(t,TD/dy);
+  return {x:PX+dx*t, y:dy*t, t:t};
+}
+function sectorRays(){
+  var out=[];
+  for(var k=1;k<WEDGES;k++) out.push(rayExit(Math.PI-k*Math.PI/WEDGES));
+  return out;
+}
+function sectorLabels(){
+  var out=[];
+  for(var w=1;w<=WEDGES;w++){
+    var th=Math.PI-(w-0.5)*Math.PI/WEDGES, e=rayExit(th);
+    var dx=Math.cos(th), dy=Math.sin(th);
+    var rs=[R1*0.66, (R1+R2)/2, R2+(e.t-R2)*0.42];
+    for(var b=0;b<3;b++){
+      out.push({s:(b===0?w:(b===1?11-w:10+w)), z:b+1,
+                x:PX+dx*rs[b], y:dy*rs[b]});
+    }
+  }
+  return out;
+}
+function fmtClock(ms){
+  var s=Math.max(0,Math.round(ms/1000)), m=Math.floor(s/60);
+  return m+":"+String(s%60).padStart(2,"0");
+}
+function fmtDate(ts){
+  var d=new Date(ts);
+  return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+
+    " · "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+}
+function safeName(s){ return String(s).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,""); }
+
+/* ================================================================ court ==== */
+function arcDown(r){ return "M "+(PX-r)+" 0 A "+r+" "+r+" 0 0 0 "+(PX+r)+" 0 Z"; }
+function drawCourt(svg,withShots){
+  var p=[];
+  p.push('<rect x="0" y="'+VBY+'" width="'+CW+'" height="'+VBH+'" fill="var(--court)"/>');
+  p.push('<rect x="0" y="0" width="'+CW+'" height="'+TD+'" fill="var(--z3-tint)"/>');
+  p.push('<path d="'+arcDown(R2)+'" fill="var(--z2-tint)"/>');
+  p.push('<path d="'+arcDown(R1)+'" fill="var(--z1-tint)"/>');
+  p.push('<path d="'+arcDown(R1)+'" fill="none" stroke="var(--court-line-soft)" stroke-width="0.08" stroke-dasharray="0.36 0.26"/>');
+  p.push('<path d="'+arcDown(R2)+'" fill="none" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<line x1="0" y1="0" x2="'+CW+'" y2="0" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<line x1="0" y1="'+TD+'" x2="'+CW+'" y2="'+TD+'" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<line x1="0.06" y1="0" x2="0.06" y2="'+TD+'" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<line x1="'+(CW-0.06)+'" y1="0" x2="'+(CW-0.06)+'" y2="'+TD+'" stroke="var(--court-line)" stroke-width="0.12"/>');
+  /* the coach's sector grid: four lines fanning out from the post */
+  var rays=sectorRays();
+  for(var q=0;q<rays.length;q++){
+    p.push('<line x1="'+PX+'" y1="0" x2="'+rays[q].x+'" y2="'+rays[q].y+
+      '" stroke="var(--court-line-soft)" stroke-width="0.07" opacity="0.85"/>');
+  }
+  p.push('<circle cx="'+PX+'" cy="0" r="0.28" fill="var(--court-line)"/>');
+  p.push('<circle cx="'+PX+'" cy="0" r="0.55" fill="none" stroke="var(--court-line)" stroke-width="0.09"/>');
+  var labs=sectorLabels();
+  for(var L=0;L<labs.length;L++){
+    p.push('<text x="'+labs[L].x+'" y="'+(labs[L].y+0.17)+'" text-anchor="middle" '+
+      'font-size="0.5" font-weight="700" font-family="Archivo,sans-serif" '+
+      'fill="var(--z'+labs[L].z+')" opacity="0.4">'+labs[L].s+'</text>');
+  }
+  if(withShots && S){
+    for(var j=0;j<S.shots.length;j++){
+      var s=S.shots[j];
+      p.push(s.made
+        ? '<circle cx="'+s.x+'" cy="'+s.y+'" r="'+DOT+'" fill="var(--made)"/>'
+        : '<circle cx="'+s.x+'" cy="'+s.y+'" r="'+(DOT-0.03)+'" fill="none" stroke="var(--miss)" stroke-width="0.11"/>');
+    }
+  }
+  if(pending){
+    p.push('<circle cx="'+pending.x+'" cy="'+pending.y+'" r="0.72" fill="none" stroke="var(--z'+pending.z+')" stroke-width="0.1" opacity="0.55"/>');
+    p.push('<circle cx="'+pending.x+'" cy="'+pending.y+'" r="0.34" fill="var(--z'+pending.z+')"/>');
+  }
+  svg.innerHTML=p.join("");
+}
+
+/* ============================================================== session ==== */
+function newSession(player,mode,target,note){
+  S={id:Date.now(), player:player||"Shooter", mode:mode, target:target|0, note:note||"",
+     start:Date.now(), end:null, shots:[]};
+  pending=null; store(K_ACTIVE,S); renderAll(); go("Shoot");
+}
+function logShot(made){
+  if(!S||!pending) return;
+  var z=pending.z, k=pending.k;
+  S.shots.push({x:+pending.x.toFixed(3), y:+pending.y.toFixed(3), z:z, k:k,
+                made:made, t:Date.now()});
+  if(!lockSpot) pending=null;
+  buzz(made?H.made:H.miss);
+  flashBtn(made?"madeBtn":"missBtn");
+  toast(made, z, k, S.shots.length);
+  store(K_ACTIVE,S); renderShoot();
+}
+function flashBtn(id){
+  var b=document.getElementById(id);
+  b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");
+  var r=document.createElement("span");
+  r.className="ripple";
+  var box=b.getBoundingClientRect(), d=Math.max(box.width,box.height);
+  r.style.cssText="width:"+d+"px;height:"+d+"px;left:"+((box.width-d)/2)+"px;top:"+((box.height-d)/2)+"px";
+  b.appendChild(r);
+  setTimeout(function(){ r.remove(); },460);
+}
+var toastEl=null;
+function toast(made,z,k,n){
+  if(toastEl) toastEl.remove();
+  var t=document.createElement("div");
+  t.className="toast";
+  t.innerHTML=(made?"Goal":"Miss")+' <span class="tz">sector '+k+" · "+
+    esc(zoneLabel(z))+" · shot "+n+"</span>";
+  document.getElementById("actions").appendChild(t);
+  toastEl=t;
+  setTimeout(function(){ if(t===toastEl) toastEl=null; t.remove(); },1200);
+}
+function undo(){
+  if(!S||!S.shots.length) return;
+  var s=S.shots.pop(); pending={x:s.x,y:s.y,z:s.z,k:shotSector(s)};
+  buzz(H.ui); store(K_ACTIVE,S); renderShoot();
+}
+function endSession(){
+  if(!S) return;
+  S.end=Date.now();
+  if(S.shots.length){ hist.unshift(S); store(K_HIST,hist); }
+  S=null; pending=null;
+  try{ localStorage.removeItem(K_ACTIVE); }catch(e){}
+  renderAll(); go("Hist"); closeSheet();
+}
+
+/* ================================================================ stats ==== */
+function analyse(sess){
+  var z={1:{a:0,m:0},2:{a:0,m:0},3:{a:0,m:0}}, a=0,m=0,pts=0,poss=0, best=0,run=0;
+  var f5 = sess.mode==="fast5";
+  for(var i=0;i<sess.shots.length;i++){
+    var s=sess.shots[i], val=f5?s.z:1;
+    z[s.z].a++; a++; poss+=val;
+    if(s.made){ z[s.z].m++; m++; pts+=val; run++; if(run>best) best=run; } else run=0;
+  }
+  var half=Math.floor(a/2), h1={a:0,m:0}, h2={a:0,m:0};
+  for(var k=0;k<a;k++){ var t=(k<half)?h1:h2; t.a++; if(sess.shots[k].made) t.m++; }
+  var blocks=[];
+  for(var b=0;b<a;b+=10){
+    var seg=sess.shots.slice(b,b+10), mm=0;
+    for(var q=0;q<seg.length;q++) if(seg[q].made) mm++;
+    blocks.push({n:seg.length,m:mm,p:pct(mm,seg.length)});
+  }
+  var sec={};
+  for(var q2=1;q2<=15;q2++) sec[q2]={a:0,m:0};
+  for(var p2=0;p2<sess.shots.length;p2++){
+    var sh=sess.shots[p2], kk=shotSector(sh);
+    if(!kk) continue;
+    sec[kk].a++; if(sh.made) sec[kk].m++;
+  }
+  var hot=null, cold=null;
+  for(var q3=1;q3<=15;q3++){
+    var d2=sec[q3]; if(d2.a<3) continue;              /* need a few shots to mean anything */
+    var pp=d2.m/d2.a;
+    if(!hot||pp>hot.p) hot={k:q3,p:pp,d:d2};
+    if(!cold||pp<cold.p) cold={k:q3,p:pp,d:d2};
+  }
+  return {z:z,a:a,m:m,pts:pts,poss:poss,best:best,h1:h1,h2:h2,blocks:blocks,
+          sec:sec, hot:hot, cold:cold,
+          dur:(sess.end||Date.now())-sess.start, f5:f5};
+}
+function sectorTableHTML(sess){
+  var r=analyse(sess), f5=r.f5, out=[], bands=[
+    {b:1,ks:[1,2,3,4,5]}, {b:2,ks:[10,9,8,7,6]}, {b:3,ks:[11,12,13,14,15]}];
+  out.push('<table><thead><tr><th>Sector</th><th>Shots</th><th>In</th><th>%</th>'+
+    '<th>'+(f5?"Pts":"Goals")+'</th></tr></thead>');
+  for(var i=0;i<bands.length;i++){
+    var bd=bands[i], zz=bd.b, ba=0, bm=0;
+    out.push('<tbody style="--zc:var(--z'+zz+')">');
+    out.push('<tr><td colspan="5" style="padding-top:12px;font-size:10px;letter-spacing:.1em;'+
+      'text-transform:uppercase;font-weight:700;color:var(--zc);border-bottom:none">'+
+      esc(zoneName(sess,zz))+' — '+esc(ZONES[zz].sub)+'</td></tr>');
+    for(var j=0;j<bd.ks.length;j++){
+      var k=bd.ks[j], d=r.sec[k];
+      ba+=d.a; bm+=d.m;
+      out.push('<tr'+(d.a?'':' style="opacity:.4"')+'><td><span class="zdot"></span>'+
+        'Sector '+k+'</td><td>'+(d.a||"—")+'</td><td>'+(d.a?d.m:"—")+'</td><td><b>'+
+        (d.a?pct(d.m,d.a)+"%":"—")+'</b></td><td>'+(d.a?(f5?d.m*zz:d.m):"—")+'</td></tr>');
+    }
+    out.push('<tr><td style="font-weight:700">Band total</td><td>'+ba+'</td><td>'+bm+
+      '</td><td><b>'+pct(bm,ba)+'%</b></td><td>'+(f5?bm*zz:bm)+'</td></tr>');
+    out.push('</tbody>');
+  }
+  out.push('</table>');
+  if(r.hot||r.cold){
+    out.push('<p class="note">');
+    if(r.hot) out.push('Strongest sector <b>'+r.hot.k+'</b> at '+
+      pct(r.hot.d.m,r.hot.d.a)+'% ('+r.hot.d.m+' of '+r.hot.d.a+').');
+    if(r.cold && (!r.hot || r.cold.k!==r.hot.k)) out.push(' Weakest sector <b>'+r.cold.k+
+      '</b> at '+pct(r.cold.d.m,r.cold.d.a)+'% ('+r.cold.d.m+' of '+r.cold.d.a+').');
+    out.push(' Sectors with fewer than three shots are left out of that comparison.</p>');
+  }
+  return out.join("");
+}
+function byZone(sess){
+  var per={1:[],2:[],3:[]};
+  for(var i=0;i<sess.shots.length;i++) per[sess.shots[i].z].push(sess.shots[i]);
+  return per;
+}
+function trendLine(r){
+  if(!r.h1.a||!r.h2.a) return "";
+  var d=pct(r.h2.m,r.h2.a)-pct(r.h1.m,r.h1.a);
+  if(d<-5) return " Accuracy dropped as she tired.";
+  if(d>5) return " She got stronger as the session went on.";
+  return " She held steady throughout.";
+}
+
+/* =============================================================== render ==== */
+function renderTop(){
+  var n=document.getElementById("tbName"), sub=document.getElementById("tbSub"),
+      sc=document.getElementById("tbScore"), lbl=document.getElementById("tbScoreLbl");
+  if(!S){ n.textContent="No session"; sub.textContent="Tap Sessions to review past work";
+    sc.textContent="0"; lbl.textContent="Points"; return; }
+  var r=analyse(S);
+  n.textContent=S.player;
+  sub.textContent=(S.mode==="fast5"?"Fast5":"Netball")+" · "+fmtClock(Date.now()-S.start)+
+    " · "+r.m+"/"+r.a;
+  if(S.mode==="fast5"){ sc.textContent=r.pts; lbl.textContent="Points"; }
+  else { sc.textContent=pct(r.m,r.a)+"%"; lbl.textContent="Accuracy"; }
+}
+function renderShoot(){
+  var live=document.getElementById("shootLive"), emp=document.getElementById("shootEmpty"),
+      act=document.getElementById("actions");
+  live.hidden=!S; act.hidden=!S; emp.style.display=S?"none":"block";
+  renderTop();
+  if(!S) return;
+
+  var r=analyse(S), out=[];
+  for(var zi=1;zi<=3;zi++){
+    var d=r.z[zi], isLive = pending && pending.z===zi;
+    out.push('<div class="tile'+(isLive?" live":"")+'" style="--zc:var(--z'+zi+')">'+
+      '<div class="tile-h">'+esc(zoneShort(zi))+'<i>'+(d.a?pct(d.m,d.a)+"%":"—")+'</i></div>'+
+      '<div class="tile-v">'+d.m+'<i>/'+d.a+'</i></div></div>');
+  }
+  document.getElementById("tiles").innerHTML=out.join("");
+
+  drawCourt(document.getElementById("court"), true);
+  document.getElementById("hint").style.display = S.shots.length||pending ? "none":"block";
+
+  var st=document.getElementById("status");
+  if(pending){
+    st.innerHTML='<b>Sector '+pending.k+'</b> · '+esc(zoneLabel(pending.z))+
+      ' · shot '+(S.shots.length+1);
+    st.style.setProperty("--zc","var(--z"+pending.z+")");
+  } else st.textContent="Tap the court";
+  document.getElementById("madeBtn").disabled=!pending;
+  document.getElementById("missBtn").disabled=!pending;
+  document.getElementById("undoBtn").disabled=!S.shots.length;
+}
+function blockSheetHTML(sess){
+  var per=byZone(sess), out=[];
+  for(var z=1;z<=3;z++){
+    var list=per[z], total=Math.max(list.length, sess.target||0), m=0;
+    for(var q=0;q<list.length;q++) if(list[q].made) m++;
+    if(!total) continue;
+    var b=[];
+    for(var n=0;n<total;n++){
+      var s=list[n];
+      b.push('<div class="blk '+(s?(s.made?"hit":"gone"):"todo")+'">'+(n+1)+'</div>');
+    }
+    out.push('<div class="sheetgrp" style="--zc:var(--z'+z+')">'+
+      '<div class="gh"><b>'+esc(zoneName(sess,z))+'</b>'+
+      '<span>'+m+' of '+list.length+(sess.target?" · target "+sess.target:"")+
+      ' · '+pct(m,list.length)+'%</span></div>'+
+      '<div class="blocks">'+b.join("")+'</div></div>');
+  }
+  if(!out.length) return emptyMsg("No shots logged","Head to the Shoot tab and tap the court.");
+  out.push('<div class="legend"><span><i class="f"></i>goal</span>'+
+    '<span><i></i>miss</span><span><i class="d"></i>not taken yet</span></div>');
+  return out.join("");
+}
+function renderSheet(){
+  var el=document.getElementById("sheetBody");
+  if(!S && !hist.length){
+    el.innerHTML=emptyMsg("Nothing to show yet",
+      "The block sheet fills in as she shoots — one numbered block per shot, coloured in when it goes through.");
+    return;
+  }
+  var sess=S||hist[0];
+  el.innerHTML='<p class="note" style="margin:0 0 15px">'+
+    (S?"Live — this session":"Last session · "+esc(fmtDate(sess.start)))+
+    '</p>'+blockSheetHTML(sess);
+}
+function statsHTML(sess){
+  var r=analyse(sess), f5=r.f5, rows=[];
+  for(var z=1;z<=3;z++){
+    var d=r.z[z];
+    rows.push('<tr style="--zc:var(--z'+z+')"><td><span class="zdot"></span>'+
+      esc(zoneName(sess,z))+'</td><td>'+d.a+'</td><td>'+d.m+'</td><td><b>'+
+      pct(d.m,d.a)+'%</b></td><td>'+(f5?d.m*z:d.m)+'</td></tr>');
+  }
+  var bars=r.blocks.map(function(b,i){
+    return '<div class="bar" title="Shots '+(i*10+1)+'-'+(i*10+b.n)+': '+b.p+'%">'+
+      '<i style="height:'+b.p+'%"></i></div>';
+  }).join("");
+
+  return ''+
+  '<div class="card"><h3>Session total</h3><div class="kpis">'+
+    '<div class="kpi"><span>Accuracy</span><b>'+pct(r.m,r.a)+'%</b><em>'+r.m+' of '+r.a+' shots</em></div>'+
+    '<div class="kpi"><span>'+(f5?"Points":"Goals")+'</span><b>'+(f5?r.pts:r.m)+'</b><em>'+
+      (f5?"of "+r.poss+" attempted":"in "+fmtClock(r.dur))+'</em></div>'+
+    '<div class="kpi"><span>Best run</span><b>'+r.best+'</b><em>in a row</em></div>'+
+    '<div class="kpi"><span>Duration</span><b>'+fmtClock(r.dur)+'</b><em>'+
+      (r.a?(r.dur/1000/r.a).toFixed(1)+"s per shot":"—")+'</em></div>'+
+  '</div></div>'+
+
+  '<div class="card"><h3>By zone</h3><table><thead><tr><th>Zone</th><th>Shots</th><th>In</th>'+
+    '<th>%</th><th>'+(f5?"Pts":"Goals")+'</th></tr></thead><tbody>'+rows.join("")+'</tbody>'+
+    '<tfoot><tr><td>All zones</td><td>'+r.a+'</td><td>'+r.m+'</td><td>'+pct(r.m,r.a)+'%</td><td>'+
+    (f5?r.pts:r.m)+'</td></tr></tfoot></table></div>'+
+
+  '<div class="card"><h3>Where she shot from</h3>'+
+    '<svg viewBox="'+VB+'" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line)" class="mapSvg"></svg>'+
+    '<p class="note c">Solid dot = goal, ring = miss.</p></div>'+
+
+  '<div class="card"><h3>By sector</h3>'+sectorTableHTML(sess)+'</div>'+
+
+  (r.blocks.length>1?'<div class="card"><h3>Accuracy through the session</h3>'+
+    '<div class="strip">'+bars+'</div>'+
+    '<div class="axis"><span>Shot 1</span><span>Shot '+r.a+'</span></div>'+
+    '<p class="note">First half '+pct(r.h1.m,r.h1.a)+'% · second half '+pct(r.h2.m,r.h2.a)+'%.'+
+      esc(trendLine(r))+'</p></div>':'');
+}
+function renderStats(){
+  var el=document.getElementById("statsBody"), sess=S||hist[0];
+  if(!sess||!sess.shots.length){
+    el.innerHTML=emptyMsg("No stats yet","Log a few shots and the breakdown appears here.");
+    return;
+  }
+  el.innerHTML=(S?"":'<p class="note" style="margin:0">Last session · '+esc(fmtDate(sess.start))+'</p>')+
+    statsHTML(sess)+
+    '<button class="btn primary" id="repBtn">Report for coach</button>'+
+    (S?'<button class="btn danger" id="endBtn">End session</button>':'');
+  paintMap(el,sess);
+  var rb=document.getElementById("repBtn"); if(rb) rb.onclick=function(){ openReport(sess); };
+  var eb=document.getElementById("endBtn"); if(eb) eb.onclick=confirmEnd;
+}
+function renderHist(){
+  var el=document.getElementById("histBody"), out=[];
+  if(S) out.push('<div class="rowbtns"><button class="btn" id="newBtn">Back to shooting</button>'+
+    '<button class="btn primary" id="endBtn2">End session</button></div>');
+  else out.push('<button class="btn primary" id="newBtn">New session</button>');
+  if(!hist.length){
+    out.push(emptyMsg("No saved sessions",
+      "When you end a session it is saved here with its full report, so you can compare week to week."));
+  } else {
+    out.push('<div><h3 style="margin:4px 0 10px;font-size:10.5px;letter-spacing:.12em;'+
+      'text-transform:uppercase;color:var(--ink-3);font-weight:700">Saved sessions</h3><div class="slist">');
+    for(var i=0;i<hist.length;i++){
+      var h=hist[i], r=analyse(h);
+      out.push('<button class="srow" data-i="'+i+'"><div class="srow-m"><b>'+esc(h.player)+'</b>'+
+        '<span>'+esc(fmtDate(h.start))+' · '+(h.mode==="fast5"?"Fast5":"Netball")+' · '+
+        r.m+'/'+r.a+'</span></div><div class="srow-p"><b>'+pct(r.m,r.a)+'%</b><span>'+
+        (h.mode==="fast5"?r.pts+" pts":"accuracy")+'</span></div><span class="chev">›</span></button>');
+    }
+    out.push('</div></div>');
+  }
+  el.innerHTML=out.join("");
+  document.getElementById("newBtn").onclick=function(){ S?go("Shoot"):openNew(); };
+  var e2=document.getElementById("endBtn2"); if(e2) e2.onclick=confirmEnd;
+  var rows=el.querySelectorAll(".srow");
+  for(var k=0;k<rows.length;k++) rows[k].onclick=function(){ openPast(hist[+this.dataset.i]); };
+}
+function paintMap(container,sess){
+  var map=container.querySelector(".mapSvg"); if(!map) return;
+  var oldS=S, oldP=pending; S=sess; pending=null;
+  drawCourt(map,true); S=oldS; pending=oldP;
+}
+function emptyMsg(t,p){ return '<div class="empty"><b>'+esc(t)+'</b><p>'+esc(p)+'</p></div>'; }
+function renderAll(){ renderShoot(); renderSheet(); renderStats(); renderHist(); }
+
+/* ================================================================= tabs ==== */
+var tab="Shoot", IDS={Shoot:"scShoot",Sheet:"scSheet",Stats:"scStats",Hist:"scHist"};
+var trail=["Shoot"];
+function go(t,viaBack){
+  tab=t;
+  for(var k in IDS) document.getElementById(IDS[k]).classList.toggle("on",k===t);
+  var bs=document.querySelectorAll("#nav button");
+  for(var i=0;i<bs.length;i++) bs[i].classList.toggle("on", bs[i].dataset.tab===t);
+  if(t==="Sheet") renderSheet();
+  if(t==="Stats") renderStats();
+  if(t==="Hist") renderHist();
+  document.getElementById(IDS[t]).scrollTop=0;
+  if(!viaBack && trail[trail.length-1]!==t){
+    trail.push(t);
+    if(trail.length>25) trail.shift();
+    guard();
+  }
+  document.getElementById("tbBack").hidden = trail.length<2;
+}
+/* Back: closes an open panel first, otherwise steps back through the tabs.
+   The phone's own back gesture is wired to the same thing. */
+function goBack(){
+  if(stack.length){ popSheet(); return true; }
+  if(trail.length>1){ trail.pop(); go(trail[trail.length-1],true); return true; }
+  return false;
+}
+function guard(){ try{ history.pushState({app:1},""); }catch(e){} }
+window.addEventListener("popstate",function(){
+  if(goBack()) guard();          /* re-arm so the next back stays inside the app */
+});
+
+/* =============================================== sheet stack (back/forth) == */
+var stack=[];
+function pushSheet(spec){ stack.push(spec); paintSheet(); guard(); }
+function popSheet(){ stack.pop(); if(!stack.length) closeSheet(); else paintSheet(); }
+function closeSheet(){ stack=[]; document.getElementById("veil").hidden=true; }
+function paintSheet(){
+  var s=stack[stack.length-1];
+  document.getElementById("veil").hidden=false;
+  document.getElementById("shTitle").textContent=s.title;
+  document.getElementById("shSub").textContent=s.sub||"";
+  var back=document.getElementById("shBack");
+  back.textContent = stack.length>1 ? "‹ Back" : "Close";
+  var body=document.getElementById("shBody");
+  body.innerHTML=s.html; body.scrollTop=0;
+  var foot=document.getElementById("shFoot");
+  if(s.foot){ foot.hidden=false; foot.innerHTML=s.foot; } else { foot.hidden=true; foot.innerHTML=""; }
+  if(s.onMount) s.onMount(body,foot);
+}
+document.getElementById("shBack").onclick=popSheet;
+document.getElementById("veil").addEventListener("click",function(e){ if(e.target===this) closeSheet(); });
+
+/* in-app confirm — window.confirm is blocked inside some embedded viewers */
+function askConfirm(title,msg,okLabel,danger,onOk){
+  pushSheet({
+    title:title, sub:"",
+    html:'<p class="note" style="margin:0 0 18px;font-size:14px">'+esc(msg)+'</p>',
+    foot:'<div class="rowbtns"><button class="btn" id="ncx">Cancel</button>'+
+         '<button class="btn '+(danger?"danger":"primary")+'" id="nok">'+esc(okLabel)+'</button></div>',
+    onMount:function(){
+      document.getElementById("ncx").onclick=popSheet;
+      document.getElementById("nok").onclick=function(){ popSheet(); onOk(); };
+    }
+  });
+}
+function notify(title,msg){
+  pushSheet({ title:title, sub:"",
+    html:'<p class="note" style="margin:0;font-size:14px">'+esc(msg)+'</p>',
+    foot:'<button class="btn primary" id="nok2">OK</button>',
+    onMount:function(){ document.getElementById("nok2").onclick=popSheet; } });
+}
+
+/* ============================================================== new/end ==== */
+function openNew(){
+  var last=hist[0]||{};
+  pushSheet({
+    title:"New session", sub:"Timestamped from the moment you start",
+    html:'<label class="field"><span>Shooter</span><input id="fPlayer" value="'+esc(last.player||"")+
+      '" placeholder="Her name"></label>'+
+      '<div class="field"><span>Type</span><div class="seg" id="fMode">'+
+      '<button data-v="fast5" aria-pressed="true">Fast5 &nbsp;1/2/3 pts</button>'+
+      '<button data-v="net" aria-pressed="false">Netball practice</button></div></div>'+
+      '<label class="field"><span>Target per zone (optional)</span>'+
+      '<input id="fTarget" type="number" inputmode="numeric" min="0" max="999" value="'+
+      (last.target||"")+'" placeholder="e.g. 100"></label>'+
+      '<label class="field"><span>Note (optional)</span>'+
+      '<input id="fNote" placeholder="Drill, coach, conditions"></label>',
+    foot:'<button class="btn primary" id="goBtn">Start shooting</button>',
+    onMount:function(){
+      var mode="fast5", seg=document.getElementById("fMode");
+      seg.onclick=function(e){
+        var b=e.target.closest("button"); if(!b) return;
+        mode=b.dataset.v;
+        var all=seg.querySelectorAll("button");
+        for(var i=0;i<all.length;i++) all[i].setAttribute("aria-pressed", all[i]===b?"true":"false");
+      };
+      document.getElementById("goBtn").onclick=function(){
+        newSession(document.getElementById("fPlayer").value.trim(), mode,
+          parseInt(document.getElementById("fTarget").value,10)||0,
+          document.getElementById("fNote").value.trim());
+        closeSheet();
+      };
+    }
+  });
+}
+function confirmEnd(){
+  var r=analyse(S);
+  pushSheet({
+    title:"End session?",
+    sub:r.m+" of "+r.a+" shots · "+pct(r.m,r.a)+"% · "+fmtClock(r.dur),
+    html:'<p class="note" style="margin:0 0 16px;font-size:14px">It will be saved to Sessions '+
+      'with its full report, so you can open it again any time.</p>'+
+      '<label class="field"><span>Session note for the coach</span>'+
+      '<textarea id="fEndNote" placeholder="How it went, anything the coach should know">'+
+      esc(S.note||"")+'</textarea></label>',
+    foot:'<div class="rowbtns"><button class="btn" id="cx">Keep going</button>'+
+      '<button class="btn primary" id="ok">End &amp; save</button></div>',
+    onMount:function(){
+      document.getElementById("cx").onclick=popSheet;
+      document.getElementById("ok").onclick=function(){
+        S.note=document.getElementById("fEndNote").value.trim(); endSession();
+      };
+    }
+  });
+}
+function openPast(sess){
+  pushSheet({
+    title:sess.player,
+    sub:fmtDate(sess.start)+" · "+(sess.mode==="fast5"?"Fast5":"Netball practice"),
+    html:'<div class="stack">'+statsHTML(sess)+
+      '<button class="btn" id="pd">Delete this session</button></div>',
+    foot:'<button class="btn primary" id="pr">Report for coach</button>',
+    onMount:function(body){
+      paintMap(body,sess);
+      document.getElementById("pr").onclick=function(){ openReport(sess); };
+      document.getElementById("pd").onclick=function(){
+        askConfirm("Delete session?",
+          "This removes "+sess.player+"'s session from "+fmtDate(sess.start)+
+          " permanently. This cannot be undone.",
+          "Delete", true, function(){
+            hist=hist.filter(function(h){ return h.id!==sess.id; });
+            store(K_HIST,hist);
+            closeSheet(); renderAll(); go("Hist");
+          });
+      };
+    }
+  });
+}
+
+/* =============================================================== report ==== */
+var rpTab="summary";
+function openReport(sess){
+  rpTab="summary";
+  pushSheet({
+    title:"Report", sub:sess.player+" · "+fmtDate(sess.start),
+    html:reportShellHTML(sess),
+    foot:(canSharePDF()
+      ? '<button class="btn primary" id="pdfBtn">Send as PDF</button>'+
+        '<div class="rowbtns" style="margin-top:9px">'+
+        '<button class="btn" id="imgBtn">Save as pictures</button>'+
+        '<button class="btn" id="csvBtn">Session data</button></div>'
+      : '<button class="btn primary" id="imgBtn">Save pages to phone</button>'+
+        '<div class="rowbtns" style="margin-top:9px">'+
+        '<button class="btn" id="pdfBtn">Try PDF</button>'+
+        '<button class="btn" id="csvBtn">Session data</button></div>'),
+    onMount:function(body,foot){ mountReport(body,foot,sess); }
+  });
+}
+function reportShellHTML(sess){
+  return '<div class="rp-tabs" id="rpTabs">'+
+    '<button data-p="summary" aria-pressed="true">Summary</button>'+
+    '<button data-p="sect" aria-pressed="false">Sectors</button>'+
+    '<button data-p="sheet" aria-pressed="false">Shot sheet</button>'+
+    '<button data-p="trend" aria-pressed="false">Trend</button></div>'+
+    '<div id="rpBody"></div>';
+}
+function mountReport(body,foot,sess){
+  var tabs=body.querySelector("#rpTabs");
+  function paint(){
+    var all=tabs.querySelectorAll("button");
+    for(var i=0;i<all.length;i++) all[i].setAttribute("aria-pressed", all[i].dataset.p===rpTab?"true":"false");
+    var out=body.querySelector("#rpBody");
+    out.innerHTML = rpTab==="summary" ? rpSummaryHTML(sess)
+                  : rpTab==="sect"    ? rpSectorHTML(sess)
+                  : rpTab==="sheet"   ? rpSheetHTML(sess)
+                  :                     rpTrendHTML(sess);
+    if(rpTab==="summary") paintMap(out,sess);
+    if(rpTab==="sect") paintSectorMap(out,sess);
+    out.scrollTop=0; body.scrollTop=0;
+  }
+  tabs.onclick=function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    rpTab=b.dataset.p; paint();
+  };
+  paint();
+  foot.querySelector("#pdfBtn").onclick=function(){ sendPDF(sess,this); };
+  foot.querySelector("#imgBtn").onclick=function(){ savePages(sess); };
+  foot.querySelector("#csvBtn").onclick=function(){ showCSV(sess); };
+}
+function rpHead(sess,pageLabel){
+  var r=analyse(sess);
+  return '<p class="rp-kicker">'+(r.f5?"Fast5 shooting session":"Netball shooting session")+'</p>'+
+    '<h4>'+esc(sess.player)+'</h4>'+
+    '<p class="rp-meta">'+esc(fmtDate(sess.start))+' · '+fmtClock(r.dur)+' on court · '+
+    esc(pageLabel)+'</p>';
+}
+function rpSummaryHTML(sess){
+  var r=analyse(sess), f5=r.f5, rows=[];
+  for(var z=1;z<=3;z++){
+    var d=r.z[z];
+    rows.push('<tr style="--zc:var(--z'+z+')"><td><span class="zdot"></span>'+
+      esc(zoneName(sess,z))+'</td><td>'+d.a+'</td><td>'+d.m+'</td><td><b>'+pct(d.m,d.a)+
+      '%</b></td><td>'+(f5?d.m*z:d.m)+'</td></tr>');
+  }
+  return '<div class="rp-page">'+rpHead(sess,"Summary")+
+    '<div class="kpis">'+
+      '<div class="kpi"><span>Accuracy</span><b>'+pct(r.m,r.a)+'%</b><em>'+r.m+' of '+r.a+' shots</em></div>'+
+      '<div class="kpi"><span>'+(f5?"Points":"Goals")+'</span><b>'+(f5?r.pts:r.m)+'</b><em>'+
+        (f5?"of "+r.poss+" attempted":"in "+fmtClock(r.dur))+'</em></div>'+
+      '<div class="kpi"><span>Best run</span><b>'+r.best+'</b><em>goals in a row</em></div>'+
+      '<div class="kpi"><span>Pace</span><b>'+(r.a?(r.dur/1000/r.a).toFixed(1)+"s":"—")+
+        '</b><em>per shot</em></div>'+
+    '</div>'+
+    '<p class="rp-sec">Breakdown by zone</p>'+
+    '<table><thead><tr><th>Zone</th><th>Shots</th><th>In</th><th>%</th><th>'+
+      (f5?"Pts":"Goals")+'</th></tr></thead><tbody>'+rows.join("")+'</tbody>'+
+      '<tfoot><tr><td>All zones</td><td>'+r.a+'</td><td>'+r.m+'</td><td>'+pct(r.m,r.a)+
+      '%</td><td>'+(f5?r.pts:r.m)+'</td></tr></tfoot></table>'+
+    '<p class="rp-sec">Where the shots were taken</p>'+
+    '<svg viewBox="'+VB+'" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line)" class="mapSvg"></svg>'+
+    '<p class="note c">Solid dot = goal, ring = miss.</p>'+
+    (sess.note?'<p class="rp-sec">Session note</p><p class="note" style="margin:0;font-size:14px;color:var(--ink)">'+
+      esc(sess.note)+'</p>':'')+
+    '</div>';
+}
+/* court diagram with each sector's tally written inside it */
+function paintSectorMap(container,sess){
+  var svg=container.querySelector(".sectorSvg"); if(!svg) return;
+  var r=analyse(sess), p=[];
+  p.push('<rect x="0" y="'+VBY+'" width="'+CW+'" height="'+VBH+'" fill="var(--court)"/>');
+  p.push('<rect x="0" y="0" width="'+CW+'" height="'+TD+'" fill="var(--z3-tint)"/>');
+  p.push('<path d="'+arcDown(R2)+'" fill="var(--z2-tint)"/>');
+  p.push('<path d="'+arcDown(R1)+'" fill="var(--z1-tint)"/>');
+  var rays=sectorRays();
+  for(var q=0;q<rays.length;q++)
+    p.push('<line x1="'+PX+'" y1="0" x2="'+rays[q].x+'" y2="'+rays[q].y+
+      '" stroke="var(--court-line-soft)" stroke-width="0.07"/>');
+  p.push('<path d="'+arcDown(R1)+'" fill="none" stroke="var(--court-line-soft)" stroke-width="0.08"/>');
+  p.push('<path d="'+arcDown(R2)+'" fill="none" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<rect x="0.06" y="0" width="'+(CW-0.12)+'" height="'+TD+
+    '" fill="none" stroke="var(--court-line)" stroke-width="0.12"/>');
+  p.push('<circle cx="'+PX+'" cy="0" r="0.28" fill="var(--court-line)"/>');
+  var labs=sectorLabels();
+  for(var L=0;L<labs.length;L++){
+    var lb=labs[L], d=r.sec[lb.s];
+    p.push('<text x="'+lb.x+'" y="'+(lb.y-0.12)+'" text-anchor="middle" font-size="0.46" '+
+      'font-weight="700" font-family="Archivo,sans-serif" fill="var(--z'+lb.z+
+      ')" opacity="0.55">'+lb.s+'</text>');
+    p.push('<text x="'+lb.x+'" y="'+(lb.y+0.62)+'" text-anchor="middle" font-size="0.62" '+
+      'font-weight="800" font-family="Archivo,sans-serif" fill="var(--ink)" '+
+      'opacity="'+(d.a?"1":"0.25")+'">'+(d.a?pct(d.m,d.a)+"%":"—")+'</text>');
+    if(d.a) p.push('<text x="'+lb.x+'" y="'+(lb.y+1.22)+'" text-anchor="middle" font-size="0.44" '+
+      'font-weight="600" font-family="Archivo,sans-serif" fill="var(--ink-2)">'+
+      d.m+'/'+d.a+'</text>');
+  }
+  svg.innerHTML=p.join("");
+}
+function rpSectorHTML(sess){
+  return '<div class="rp-page">'+rpHead(sess,"Sectors")+
+    '<p class="note" style="margin:0 0 14px">The coach’s 15-sector grid. Each sector '+
+    'shows the strike rate and the goals out of shots taken from there.</p>'+
+    '<svg viewBox="'+VB+'" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line)" class="sectorSvg"></svg>'+
+    '<p class="rp-sec">Sector by sector</p>'+sectorTableHTML(sess)+'</div>';
+}
+function rpSheetHTML(sess){
+  return '<div class="rp-page">'+rpHead(sess,"Shot sheet")+
+    '<p class="note" style="margin:0 0 16px">Numbering restarts at 1 for each zone, '+
+    'exactly like the coach’s paper form.</p>'+blockSheetHTML(sess)+'</div>';
+}
+function rpTrendHTML(sess){
+  var r=analyse(sess);
+  if(r.blocks.length<2) return '<div class="rp-page">'+rpHead(sess,"Trend")+
+    '<p class="note" style="margin:0">Not enough shots yet to show a trend. '+
+    'Ten or more shots gives the first bar.</p></div>';
+  var bars=r.blocks.map(function(b,i){
+    return '<div class="bar" title="Shots '+(i*10+1)+'-'+(i*10+b.n)+': '+b.p+'%">'+
+      '<i style="height:'+b.p+'%"></i></div>';
+  }).join("");
+  return '<div class="rp-page">'+rpHead(sess,"Trend")+
+    '<p class="rp-sec">Accuracy through the session</p>'+
+    '<div class="strip">'+bars+'</div>'+
+    '<div class="axis"><span>Shot 1</span><span>Shot '+r.a+'</span></div>'+
+    '<p class="note">Each bar is a block of ten shots in the order they were taken.</p>'+
+    '<p class="rp-sec">First half against second half</p>'+
+    '<div class="kpis">'+
+      '<div class="kpi"><span>First half</span><b>'+pct(r.h1.m,r.h1.a)+'%</b><em>'+
+        r.h1.m+' of '+r.h1.a+'</em></div>'+
+      '<div class="kpi"><span>Second half</span><b>'+pct(r.h2.m,r.h2.a)+'%</b><em>'+
+        r.h2.m+' of '+r.h2.a+'</em></div>'+
+    '</div><p class="note">'+esc(trendLine(r).trim())+'</p></div>';
+}
+
+/* ------------------------------------------------------------------ CSV --- */
+function showCSV(sess){
+  var rows=["shot,sector,zone,points,result,seconds_in,x_m,y_m"];
+  for(var i=0;i<sess.shots.length;i++){
+    var s=sess.shots[i];
+    rows.push([i+1, shotSector(s), sess.mode==="fast5"?s.z:1,
+      s.made?(sess.mode==="fast5"?s.z:1):0,
+      s.made?"made":"miss", ((s.t-sess.start)/1000).toFixed(1), s.x, s.y].join(","));
+  }
+  var txt=rows.join("\n");
+  pushSheet({
+    title:"Session data", sub:"One row per shot",
+    html:'<p class="note" style="margin:0 0 12px">Paste into Excel or Google Sheets.</p>'+
+      '<textarea class="dump" id="dmp" readonly></textarea>',
+    foot:'<button class="btn primary" id="cp">Copy to clipboard</button>',
+    onMount:function(body,foot){
+      var ta=body.querySelector("#dmp"); ta.value=txt;
+      foot.querySelector("#cp").onclick=function(){
+        var b=this;
+        ta.focus(); ta.select(); ta.setSelectionRange(0,txt.length);
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(txt).then(function(){ b.textContent="Copied"; },
+            function(){ b.textContent="Selected — press copy on your keyboard"; });
+        } else b.textContent="Selected — press copy on your keyboard";
+      };
+    }
+  });
+}
+
+/* ============================================================ PDF export ==== */
+var PDF={
+  ink:[16,23,19], ink2:[85,101,91], ink3:[138,155,144], line:[214,222,216],
+  court:[237,242,238], cline:[44,106,81], csoft:[168,192,177],
+  made:[29,107,76], miss:[169,184,174], accent:[221,84,38],
+  z:{1:[190,122,42],2:[221,84,38],3:[142,47,26]},
+  zt:{1:[246,236,225],2:[243,227,219],3:[237,220,215]}
+};
+function buildPDF(sess){
+  if(!window.jspdf||!window.jspdf.jsPDF) return null;
+  var doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+  var W=210, H=297, M=14, CWID=W-M*2;
+  var r=analyse(sess), f5=r.f5, per=byZone(sess), y=0, page=1;
+
+  function setFill(c){ doc.setFillColor(c[0],c[1],c[2]); }
+  function setDraw(c){ doc.setDrawColor(c[0],c[1],c[2]); }
+  function setText(c){ doc.setTextColor(c[0],c[1],c[2]); }
+  function font(sz,st){ doc.setFont("helvetica",st||"normal"); doc.setFontSize(sz); }
+  function newPage(){ doc.addPage(); page++; y=M; header(false); }
+  function room(mm){ if(y+mm>H-16) newPage(); }
+
+  function header(first){
+    setFill(PDF.accent); doc.rect(0,0,W,2.6,"F");
+    if(first){
+      y=M+8;
+      setText(PDF.accent); font(9.5,"bold");
+      doc.text((f5?"FAST5 SHOOTING SESSION":"NETBALL SHOOTING SESSION"),M,y-7.5);
+      setText(PDF.ink); font(24,"bold");
+      doc.text(sess.player,M,y);
+      setText(PDF.ink2); font(9.5);
+      doc.text(fmtDate(sess.start)+"   |   "+fmtClock(r.dur)+" on court   |   "+
+        r.a+" shots",M,y+6);
+      y+=13;
+      setDraw(PDF.line); doc.setLineWidth(0.3); doc.line(M,y,W-M,y); y+=9;
+    } else {
+      setText(PDF.ink3); font(8);
+      doc.text(sess.player+"  |  "+fmtDate(sess.start),M,10);
+      y=22;
+    }
+  }
+  function section(t){
+    room(14);
+    setText(PDF.ink3); font(8.5,"bold");
+    doc.text(t.toUpperCase(),M,y); y+=5.5;
+  }
+
+  /* ---------- page 1: summary ---------- */
+  header(true);
+
+  var kw=(CWID-9)/4, kpi=[
+    ["ACCURACY", pct(r.m,r.a)+"%", r.m+" of "+r.a+" shots"],
+    [f5?"POINTS":"GOALS", String(f5?r.pts:r.m), f5?("of "+r.poss+" attempted"):("in "+fmtClock(r.dur))],
+    ["BEST RUN", String(r.best), "goals in a row"],
+    ["PACE", (r.a?(r.dur/1000/r.a).toFixed(1)+"s":"-"), "per shot"]];
+  for(var i=0;i<4;i++){
+    var kx=M+i*(kw+3);
+    setFill([243,246,243]); doc.roundedRect(kx,y,kw,22,2,2,"F");
+    setText(PDF.ink3); font(6.5,"bold"); doc.text(kpi[i][0],kx+3.5,y+5.5);
+    setText(PDF.ink); font(17,"bold"); doc.text(kpi[i][1],kx+3.5,y+14);
+    setText(PDF.ink2); font(7); doc.text(kpi[i][2],kx+3.5,y+18.8);
+  }
+  y+=30;
+
+  section("Breakdown by zone");
+  var cR=[W-M-72, W-M-52, W-M-28, W-M];
+  setText(PDF.ink3); font(7,"bold");
+  doc.text("ZONE",M,y);
+  doc.text("SHOTS",cR[0],y,{align:"right"});
+  doc.text("IN",cR[1],y,{align:"right"});
+  doc.text("ACCURACY",cR[2],y,{align:"right"});
+  doc.text((f5?"POINTS":"GOALS"),cR[3],y,{align:"right"});
+  y+=2; setDraw(PDF.line); doc.line(M,y,W-M,y); y+=1;
+  for(var z=1;z<=3;z++){
+    var d=r.z[z]; y+=7.5;
+    setFill(PDF.z[z]); doc.roundedRect(M,y-2.9,2.6,2.6,0.5,0.5,"F");
+    setText(PDF.ink); font(9.5,"bold"); doc.text(zoneName(sess,z),M+5,y);
+    setText(PDF.ink2); font(8);
+    doc.text(ZONES[z].sub,M+5+doc.getTextWidth(zoneName(sess,z))*0.98+3.5,y);
+    setText(PDF.ink); font(9.5);
+    doc.text(String(d.a),cR[0],y,{align:"right"});
+    doc.text(String(d.m),cR[1],y,{align:"right"});
+    setText(PDF.z[z]); font(9.5,"bold");
+    doc.text(pct(d.m,d.a)+"%",cR[2],y,{align:"right"});
+    setText(PDF.ink); font(9.5);
+    doc.text(String(f5?d.m*z:d.m),cR[3],y,{align:"right"});
+    y+=2.6; setDraw(PDF.line); doc.line(M,y,W-M,y);
+  }
+  y+=7.5;
+  setText(PDF.ink); font(10,"bold");
+  doc.text("ALL ZONES",M,y);
+  doc.text(String(r.a),cR[0],y,{align:"right"});
+  doc.text(String(r.m),cR[1],y,{align:"right"});
+  doc.text(pct(r.m,r.a)+"%",cR[2],y,{align:"right"});
+  doc.text(String(f5?r.pts:r.m),cR[3],y,{align:"right"});
+  y+=11;
+
+  section("Where the shots were taken");
+  /* semicircles as vector polylines — a filled circle plus a white cover rect
+     would paint over the content already on the page */
+  function semi(cx,cy,rr,style,closed){
+    var pts=[], N=72, px2=cx-rr, py2=cy;
+    for(var k=1;k<=N;k++){
+      var ang=Math.PI-Math.PI*k/N;
+      var xx=cx+rr*Math.cos(ang), yy=cy+rr*Math.sin(ang);
+      pts.push([xx-px2, yy-py2]); px2=xx; py2=yy;
+    }
+    doc.lines(pts, cx-rr, cy, [1,1], style, closed);
+  }
+  var mapW=132, mapX=(W-mapW)/2, sc=mapW/CW, gl=y+2, post=mapX+PX*sc;
+  setFill(PDF.zt[3]); doc.rect(mapX,gl,mapW,TD*sc,"F");
+  setFill(PDF.zt[2]); semi(post,gl,R2*sc,"F",true);
+  setFill(PDF.zt[1]); semi(post,gl,R1*sc,"F",true);
+  setDraw(PDF.csoft); doc.setLineWidth(0.25); semi(post,gl,R1*sc,"S",false);
+  setDraw(PDF.cline); doc.setLineWidth(0.5);  semi(post,gl,R2*sc,"S",false);
+  setDraw(PDF.csoft); doc.setLineWidth(0.25);
+  sectorRays().forEach(function(e){ doc.line(post,gl,mapX+e.x*sc,gl+e.y*sc); });
+  setDraw(PDF.cline); doc.setLineWidth(0.5);
+  doc.rect(mapX,gl,mapW,TD*sc,"S");
+  setFill(PDF.cline); doc.circle(post,gl,0.8,"F");
+  for(i=0;i<sess.shots.length;i++){
+    var s=sess.shots[i], dx=mapX+s.x*sc, dy=gl+s.y*sc;
+    if(s.made){ setFill(PDF.made); doc.circle(dx,dy,1.05,"F"); }
+    else { setDraw(PDF.miss); doc.setLineWidth(0.35); doc.circle(dx,dy,0.95,"S"); }
+  }
+  y=gl+TD*sc+6.5;
+  setFill(PDF.made); doc.circle(mapX+1.2,y-1.2,1.05,"F");
+  setText(PDF.ink2); font(8); doc.text("goal",mapX+3.8,y);
+  setDraw(PDF.miss); doc.setLineWidth(0.35); doc.circle(mapX+17,y-1.2,0.95,"S");
+  doc.text("miss",mapX+19.6,y);
+  y+=9;
+
+  if(sess.note){
+    var nl=doc.splitTextToSize(sess.note,CWID-8), nh=Math.max(12,7.5+nl.length*4.6);
+    room(nh+12);
+    section("Session note");
+    setFill([243,246,243]); doc.roundedRect(M,y-4,CWID,nh,2,2,"F");
+    setText(PDF.ink); font(9.5);
+    doc.text(nl,M+4,y+1.5);
+    y+=nh+6;
+  }
+
+  /* ---------- page 2: the coach's 15-sector grid ---------- */
+  newPage();
+  setText(PDF.ink); font(15,"bold"); doc.text("Sector grid",M,y); y+=6;
+  setText(PDF.ink2); font(9);
+  doc.text("Strike rate and goals out of shots taken, for each of the 15 sectors.",M,y);
+  y+=8;
+
+  var gw=CWID, gx=M, gs=gw/CW, ggl=y+2, gpost=gx+PX*gs;
+  setFill(PDF.zt[3]); doc.rect(gx,ggl,gw,TD*gs,"F");
+  setFill(PDF.zt[2]); semi(gpost,ggl,R2*gs,"F",true);
+  setFill(PDF.zt[1]); semi(gpost,ggl,R1*gs,"F",true);
+  setDraw(PDF.csoft); doc.setLineWidth(0.3);
+  semi(gpost,ggl,R1*gs,"S",false);
+  sectorRays().forEach(function(e){ doc.line(gpost,ggl,gx+e.x*gs,ggl+e.y*gs); });
+  setDraw(PDF.cline); doc.setLineWidth(0.6);
+  semi(gpost,ggl,R2*gs,"S",false);
+  doc.rect(gx,ggl,gw,TD*gs,"S");
+  setFill(PDF.cline); doc.circle(gpost,ggl,1.1,"F");
+  sectorLabels().forEach(function(lb){
+    var d=r.sec[lb.s], lx=gx+lb.x*gs, ly=ggl+lb.y*gs;
+    setText(PDF.z[lb.z]); font(8,"bold");
+    doc.text(String(lb.s),lx,ly-1.5,{align:"center"});
+    if(d.a){
+      setText(PDF.ink); font(12,"bold");
+      doc.text(pct(d.m,d.a)+"%",lx,ly+4.4,{align:"center"});
+      setText(PDF.ink2); font(7.5);
+      doc.text(d.m+"/"+d.a,lx,ly+8.6,{align:"center"});
+    } else {
+      setText([200,210,203]); font(12,"bold");
+      doc.text("-",lx,ly+4.4,{align:"center"});
+    }
+  });
+  y=ggl+TD*gs+9;
+  if(r.hot){
+    setText(PDF.ink); font(9.5);
+    var line="Strongest sector "+r.hot.k+" at "+pct(r.hot.d.m,r.hot.d.a)+"%"+
+      (r.cold&&r.cold.k!==r.hot.k?
+        ".   Weakest sector "+r.cold.k+" at "+pct(r.cold.d.m,r.cold.d.a)+"%.":".")+
+      "   Sectors with fewer than three shots are excluded.";
+    doc.text(doc.splitTextToSize(line,CWID),M,y);
+  }
+
+  /* ---------- page 3: shot sheet ---------- */
+  newPage();
+  setText(PDF.ink); font(15,"bold"); doc.text("Shot sheet",M,y); y+=6;
+  setText(PDF.ink2); font(9);
+  doc.text("One block per shot. Filled = goal, outlined = miss, dashed = not taken.",M,y);
+  y+=3;
+  setText(PDF.ink3); font(8);
+  doc.text("Numbering restarts at 1 for each zone, like the coach's paper form.",M,y);
+  y+=9;
+
+  var cols=24, gap=0.7, cell=(CWID-(cols-1)*gap)/cols;
+  for(z=1;z<=3;z++){
+    var list=per[z], tot=Math.max(list.length, sess.target||0);
+    if(!tot) continue;
+    var mm=0; for(i=0;i<list.length;i++) if(list[i].made) mm++;
+    room(cell*2+14);
+    setText(PDF.z[z]); font(11,"bold"); doc.text(zoneName(sess,z),M,y);
+    setText(PDF.ink2); font(8.5);
+    doc.text(mm+" of "+list.length+"   |   "+pct(mm,list.length)+"%"+
+      (sess.target?"   |   target "+sess.target:""),W-M,y,{align:"right"});
+    y+=3.5;
+    for(i=0;i<tot;i++){
+      var col=i%cols;
+      if(col===0 && i>0) y+=cell+gap;
+      if(col===0) room(cell+2);
+      var bx=M+col*(cell+gap), by=y, sh=list[i];
+      if(sh&&sh.made){
+        setFill(PDF.z[z]); doc.roundedRect(bx,by,cell,cell,0.6,0.6,"F");
+        setText([255,255,255]);
+      } else if(sh){
+        setDraw(PDF.line); doc.setLineWidth(0.3);
+        doc.roundedRect(bx,by,cell,cell,0.6,0.6,"S");
+        setText(PDF.ink3);
+      } else {
+        setDraw([238,243,240]); doc.setLineWidth(0.3);
+        doc.roundedRect(bx,by,cell,cell,0.6,0.6,"S");
+        setText([225,232,227]);
+      }
+      font(4.6);
+      doc.text(String(i+1),bx+cell/2,by+cell/2+1.4,{align:"center"});
+    }
+    y+=cell+9;
+  }
+
+  /* ---------- page 4: trend ---------- */
+  if(r.blocks.length>1){
+    newPage();
+    setText(PDF.ink); font(15,"bold"); doc.text("Accuracy through the session",M,y); y+=6;
+    setText(PDF.ink2); font(9);
+    doc.text("Each bar is a block of ten shots, in the order they were taken.",M,y); y+=8;
+    var bw=CWID/r.blocks.length, bh=45;
+    for(i=0;i<r.blocks.length;i++){
+      var b=r.blocks[i], bx2=M+i*bw;
+      setFill([237,240,238]); doc.rect(bx2,y,bw-0.7,bh,"F");
+      setFill(PDF.accent); doc.rect(bx2,y+bh-bh*b.p/100,bw-0.7,bh*b.p/100,"F");
+    }
+    y+=bh+4;
+    setText(PDF.ink3); font(7.5);
+    doc.text("Shot 1",M,y); doc.text("Shot "+r.a,W-M,y,{align:"right"});
+    y+=12;
+    section("First half against second half");
+    var hw=(CWID-4)/2, halves=[["FIRST HALF",r.h1],["SECOND HALF",r.h2]];
+    for(i=0;i<2;i++){
+      var hx=M+i*(hw+4), hh=halves[i][1];
+      setFill([243,246,243]); doc.roundedRect(hx,y,hw,24,2,2,"F");
+      setText(PDF.ink3); font(7,"bold"); doc.text(halves[i][0],hx+4,y+6);
+      setText(PDF.ink); font(19,"bold"); doc.text(pct(hh.m,hh.a)+"%",hx+4,y+15.5);
+      setText(PDF.ink2); font(8); doc.text(hh.m+" of "+hh.a+" shots",hx+4,y+20.5);
+    }
+    y+=30;
+    setText(PDF.ink); font(10); doc.text(trendLine(r).trim(),M,y);
+  }
+
+  /* ---------- footers ---------- */
+  var total=doc.getNumberOfPages();
+  for(i=1;i<=total;i++){
+    doc.setPage(i);
+    setDraw(PDF.line); doc.setLineWidth(0.3); doc.line(M,H-12,W-M,H-12);
+    setText(PDF.ink3); font(7.5);
+    doc.text("Netball Shot Sheet  |  generated "+fmtDate(Date.now()),M,H-8);
+    doc.text("Page "+i+" of "+total,W-M,H-8,{align:"right"});
+  }
+  return doc;
+}
+function pdfName(sess){
+  return safeName(sess.player)+"-"+
+    new Date(sess.start).toISOString().slice(0,10)+"-shot-report.pdf";
+}
+function sendPDF(sess,btn){
+  var doc=buildPDF(sess);
+  if(!doc){
+    notify("PDF tool did not load",
+      "The PDF builder needs an internet connection the first time the app is opened. "+
+      "Reconnect and reopen the app, or use Print view instead.");
+    return;
+  }
+  var name=pdfName(sess), blob=doc.output("blob"), file=null;
+  try{ file=new File([blob],name,{type:"application/pdf"}); }catch(e){}
+
+  if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+    navigator.share({files:[file], title:sess.player+" shooting report"})
+      .then(function(){ btn.textContent="Sent"; setTimeout(function(){ btn.textContent="Send as PDF"; },1800); })
+      .catch(function(){ /* user dismissed the share sheet */ });
+    return;
+  }
+  try{ doc.save(name); }catch(e){}
+  notify("If nothing downloaded",
+    "This viewer blocks pages from saving files. Go back and tap “Save pages to "+
+    "phone” instead — that gives you a picture of each page which you can press "+
+    "and hold to share.");
+}
+/* Some viewers (the Claude app among them) sandbox the page so it cannot save a
+   file or open a print window. A picture can always be pressed and held, so the
+   report is also offered as one image per page. */
+function canSharePDF(){
+  try{
+    if(!navigator.share || !navigator.canShare) return false;
+    return navigator.canShare({files:[new File([new Blob(["x"],{type:"application/pdf"})],
+      "t.pdf",{type:"application/pdf"})]});
+  }catch(e){ return false; }
+}
+function loadScript(src){
+  return new Promise(function(res,rej){
+    if(document.querySelector('script[src="'+src+'"]')) return res();
+    var s=document.createElement("script");
+    s.src=src; s.onload=res; s.onerror=function(){ rej(new Error("load failed")); };
+    document.head.appendChild(s);
+  });
+}
+var PDFJS_SRC="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+var PDFJS_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+function savePages(sess){
+  pushSheet({
+    title:"Report pages", sub:sess.player+" · "+fmtDate(sess.start),
+    html:'<div class="busy"><div class="spin"></div>Building the pages…</div>',
+    onMount:function(body){ renderPages(body,sess); }
+  });
+}
+function renderPages(body,sess){
+  var doc=buildPDF(sess);
+  if(!doc){
+    body.innerHTML='<p class="note" style="margin:0;font-size:14px">The report builder '+
+      'did not load. Reconnect to the internet, reopen the app and try again.</p>';
+    return;
+  }
+  loadScript(PDFJS_SRC).then(function(){
+    pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+    return pdfjsLib.getDocument({data:doc.output("arraybuffer")}).promise;
+  }).then(function(pdf){
+    var out=['<p class="note" style="margin:0 0 16px;font-size:14px">Press and hold each '+
+      'page to save it or send it straight to WhatsApp.</p>'];
+    var jobs=[];
+    for(var i=1;i<=pdf.numPages;i++) jobs.push(renderOne(pdf,i));
+    return Promise.all(jobs).then(function(urls){
+      urls.forEach(function(u,k){
+        out.push('<div class="pagewrap"><p class="pagelbl">Page '+(k+1)+' of '+urls.length+
+          '</p><img class="pageimg" alt="Report page '+(k+1)+'" src="'+u+'"></div>');
+      });
+      body.innerHTML=out.join("");
+    });
+  }).catch(function(){
+    body.innerHTML='<p class="note" style="margin:0;font-size:14px">Could not build the '+
+      'page pictures. This needs an internet connection the first time. '+
+      'Try again once you are back online.</p>';
+  });
+}
+function renderOne(pdf,n){
+  return pdf.getPage(n).then(function(pg){
+    var vp=pg.getViewport({scale:2.4});           /* ~1420px wide — sharp when zoomed */
+    var cv=document.createElement("canvas");
+    cv.width=vp.width; cv.height=vp.height;
+    var cx=cv.getContext("2d");
+    cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
+    return pg.render({canvasContext:cx,viewport:vp}).promise.then(function(){
+      return cv.toDataURL("image/png");
+    });
+  });
+}
+
+/* ============================================================== wire up ==== */
+document.getElementById("nav").addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(b){ buzz(H.ui); go(b.dataset.tab); }
+});
+document.getElementById("tbBack").onclick=function(){ buzz(H.ui); goBack(); };
+document.getElementById("startBtn").onclick=openNew;
+document.getElementById("madeBtn").onclick=function(){ logShot(true); };
+document.getElementById("missBtn").onclick=function(){ logShot(false); };
+document.getElementById("undoBtn").onclick=undo;
+document.getElementById("lockBtn").onclick=function(){
+  lockSpot=!lockSpot; this.setAttribute("aria-pressed",String(lockSpot)); buzz(H.ui);
+};
+document.getElementById("court").addEventListener("click",function(e){
+  if(!S) return;
+  var m=this.getScreenCTM(); if(!m) return;
+  var pt;
+  if(window.DOMPoint) pt=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());
+  else { var sp=this.createSVGPoint(); sp.x=e.clientX; sp.y=e.clientY; pt=sp.matrixTransform(m.inverse()); }
+  var z=zoneAt(pt.x,pt.y);
+  if(!z){ document.getElementById("status").textContent="Outside the shooting area"; return; }
+  pending={x:pt.x,y:pt.y,z:z,k:sectorAt(pt.x,pt.y)}; buzz(H.tap); renderShoot();
+});
+
+hist=load(K_HIST,[]);
+S=load(K_ACTIVE,null);
+if(S && !S.shots) S=null;
+renderAll();
+tick=setInterval(function(){ if(S) renderTop(); },1000);
+
+/* Offline support, but only where it is actually deployed alongside sw.js —
+   inside an embedded viewer there is no service worker to register. */
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  fetch("sw.js",{method:"HEAD"}).then(function(res){
+    if(res.ok) navigator.serviceWorker.register("sw.js").catch(function(){});
+  }).catch(function(){});
+}
+</script>
